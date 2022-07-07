@@ -7,40 +7,56 @@
 #include "Wire.h"
 
 // Create a instance of class LSM6DS3
-LSM6DS3 myIMU(I2C_MODE, 0x6A); // I2C device address 0x6A
+LSM6DS3 my_imu(I2C_MODE, 0x6A); // I2C device address 0x6A
 
 // BLE Variables
 // Physical Activity Monitor: 0x183E
-BLEService imuService("ABF0E000-B597-4BE0-B869-6054B7ED0CE3");
+BLEService imu_service("ABF0E000-B597-4BE0-B869-6054B7ED0CE3");
 // ACC
 // acceleration unit = m/s**2
-BLEByteCharacteristic accUnitCharacteristic("2713", BLERead);
+BLEByteCharacteristic acc_unit_characteristic("2713", BLERead);
 // xiaoble is 32bit chip: 64bit,4 byte
-BLEFloatCharacteristic accXCharacteristic("ABF0E001-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
-BLEFloatCharacteristic accYCharacteristic("ABF0E002-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
-BLEFloatCharacteristic accZCharacteristic("ABF0E003-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+
+// clock Characteristic
+BLEUnsignedLongCharacteristic timer_characteristic("ABF0E001-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEDescriptor timer_descriptor("2901", "timer_ms");
+unsigned long milli_sec = 0;
+
+BLEFloatCharacteristic acc_x_characteristic("ABF0E002-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic acc_y_characteristic("ABF0E003-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic acc_z_characteristic("ABF0E004-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEDescriptor acc_x_descriptor("2901", "accX");
+BLEDescriptor acc_y_descriptor("2901", "accY");
+BLEDescriptor acc_z_descriptor("2901", "accZ");
+
 // Gyro
-BLEFloatCharacteristic gyroXCharacteristic("ABF0E004-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
-BLEFloatCharacteristic gyroYCharacteristic("ABF0E005-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
-BLEFloatCharacteristic gyroZCharacteristic("ABF0E006-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic gyro_x_characteristic("ABF0E005-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic gyro_y_characteristic("ABF0E006-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic gyro_z_characteristic("ABF0E007-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEDescriptor gyro_x_descriptor("2901", "gyroX");
+BLEDescriptor gyro_y_descriptor("2901", "gyroY");
+BLEDescriptor gyro_z_descriptor("2901", "gyroZ");
+
 // Temperature
-BLEFloatCharacteristic tempCharacteristic("ABF0E007-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEFloatCharacteristic temp_characteristic("ABF0E008-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+BLEDescriptor temp_descriptor("2901", "Temperature");
 
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(9600);
 
-  // status
+  // build-in leds
   pinMode(LEDR, OUTPUT);
   pinMode(LEDG, OUTPUT);
   pinMode(LEDB, OUTPUT);
+  // turn off the all build-in leds
   digitalWrite(LEDR, HIGH);
   digitalWrite(LEDG, HIGH);
   digitalWrite(LEDB, HIGH);
 
   // Call .begin() to configure the IMUs
-  if (myIMU.begin() != 0)
+  if (my_imu.begin() != 0)
   {
     Serial.println("Device error");
     digitalWrite(LEDR, LOW);
@@ -65,25 +81,42 @@ void setup()
 
   BLE.setDeviceName("ArduinoIMU");
   BLE.setLocalName("IMUTest");
-  BLE.setAdvertisedService(imuService);
-  imuService.addCharacteristic(accXCharacteristic);
-  imuService.addCharacteristic(accYCharacteristic);
-  imuService.addCharacteristic(accZCharacteristic);
-  imuService.addCharacteristic(accUnitCharacteristic);
-  imuService.addCharacteristic(gyroXCharacteristic);
-  imuService.addCharacteristic(gyroYCharacteristic);
-  imuService.addCharacteristic(gyroZCharacteristic);
-  imuService.addCharacteristic(tempCharacteristic);
+  BLE.setAdvertisedService(imu_service);
 
-  BLE.addService(imuService);
+  // clock
+  imu_service.addCharacteristic(timer_characteristic);
+  timer_characteristic.addDescriptor(timer_descriptor);
 
-  accXCharacteristic.writeValue(0);
-  accYCharacteristic.writeValue(0);
-  accZCharacteristic.writeValue(0);
-  gyroXCharacteristic.writeValue(0);
-  gyroYCharacteristic.writeValue(0);
-  gyroZCharacteristic.writeValue(0);
-  tempCharacteristic.writeValue(0);
+  // acc
+  imu_service.addCharacteristic(acc_x_characteristic);
+  imu_service.addCharacteristic(acc_y_characteristic);
+  imu_service.addCharacteristic(acc_z_characteristic);
+  acc_x_characteristic.addDescriptor(acc_x_descriptor);
+  acc_y_characteristic.addDescriptor(acc_y_descriptor);
+  acc_z_characteristic.addDescriptor(acc_z_descriptor);
+
+  // gyro
+  imu_service.addCharacteristic(gyro_x_characteristic);
+  imu_service.addCharacteristic(gyro_y_characteristic);
+  imu_service.addCharacteristic(gyro_z_characteristic);
+  gyro_x_characteristic.addDescriptor(gyro_x_descriptor);
+  gyro_y_characteristic.addDescriptor(gyro_y_descriptor);
+  gyro_z_characteristic.addDescriptor(gyro_z_descriptor);
+
+  // temperature
+  imu_service.addCharacteristic(temp_characteristic);
+  temp_characteristic.addDescriptor(temp_descriptor);
+
+  BLE.addService(imu_service);
+
+  timer_characteristic.writeValueLE(0);
+  acc_x_characteristic.writeValueLE(0);
+  acc_y_characteristic.writeValueLE(0);
+  acc_z_characteristic.writeValueLE(0);
+  gyro_x_characteristic.writeValueLE(0);
+  gyro_y_characteristic.writeValueLE(0);
+  gyro_z_characteristic.writeValueLE(0);
+  temp_characteristic.writeValueLE(0);
 
   BLE.advertise();
 }
@@ -96,22 +129,25 @@ void loop()
   {
     while (central.connected())
     {
-      float x = myIMU.readFloatAccelX(); // 16bit
-      float y = myIMU.readFloatAccelX();
-      float z = myIMU.readFloatAccelZ();
-      accXCharacteristic.writeValue(x);
-      accYCharacteristic.writeValue(y);
-      accZCharacteristic.writeValue(z);
+      milli_sec = millis();
+      timer_characteristic.writeValueLE(milli_sec);
 
-      float gx = myIMU.readRawGyroX();
-      float gy = myIMU.readRawGyroY();
-      float gz = myIMU.readRawGyroZ();
-      gyroXCharacteristic.writeValue(gx);
-      gyroYCharacteristic.writeValue(gy);
-      gyroZCharacteristic.writeValue(gz);
+      float x = my_imu.readFloatAccelX();
+      float y = my_imu.readFloatAccelY();
+      float z = my_imu.readFloatAccelZ();
+      acc_x_characteristic.writeValueLE(x);
+      acc_y_characteristic.writeValueLE(y);
+      acc_z_characteristic.writeValueLE(z);
 
-      float temp = myIMU.readTempC();
-      tempCharacteristic.writeValue(temp);
+      float gx = my_imu.readFloatGyroX();
+      float gy = my_imu.readFloatGyroY();
+      float gz = my_imu.readFloatGyroZ();
+      gyro_x_characteristic.writeValueLE(gx);
+      gyro_y_characteristic.writeValueLE(gy);
+      gyro_z_characteristic.writeValueLE(gz);
+
+      float temp = my_imu.readTempC();
+      temp_characteristic.writeValueLE(temp);
 
       digitalWrite(LEDB, !digitalRead(LEDB)); // ble heartbeat
       delay(100);
