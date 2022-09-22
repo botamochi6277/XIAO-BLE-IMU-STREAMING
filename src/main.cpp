@@ -10,18 +10,14 @@
 LSM6DS3 my_imu(I2C_MODE, 0x6A); // I2C device address 0x6A
 
 // BLE Variables
-// Physical Activity Monitor: 0x183E
 BLEService imu_service("ABF0E000-B597-4BE0-B869-6054B7ED0CE3");
-// ACC
-// acceleration unit = m/s**2
-BLEByteCharacteristic acc_unit_characteristic("2713", BLERead);
-// xiaoble is 32bit chip: 64bit,4 byte
-
 // clock Characteristic
 BLEUnsignedLongCharacteristic timer_characteristic("ABF0E001-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
+//  Characteristic User Description Descriptor
 BLEDescriptor timer_descriptor("2901", "timer_ms");
 unsigned long milli_sec = 0;
 
+// acc
 BLEFloatCharacteristic acc_x_characteristic("ABF0E002-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
 BLEFloatCharacteristic acc_y_characteristic("ABF0E003-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
 BLEFloatCharacteristic acc_z_characteristic("ABF0E004-B597-4BE0-B869-6054B7ED0CE3", BLERead | BLENotify);
@@ -91,6 +87,7 @@ void setup()
   imu_service.addCharacteristic(acc_x_characteristic);
   imu_service.addCharacteristic(acc_y_characteristic);
   imu_service.addCharacteristic(acc_z_characteristic);
+
   acc_x_characteristic.addDescriptor(acc_x_descriptor);
   acc_y_characteristic.addDescriptor(acc_y_descriptor);
   acc_z_characteristic.addDescriptor(acc_z_descriptor);
@@ -99,6 +96,7 @@ void setup()
   imu_service.addCharacteristic(gyro_x_characteristic);
   imu_service.addCharacteristic(gyro_y_characteristic);
   imu_service.addCharacteristic(gyro_z_characteristic);
+
   gyro_x_characteristic.addDescriptor(gyro_x_descriptor);
   gyro_y_characteristic.addDescriptor(gyro_y_descriptor);
   gyro_z_characteristic.addDescriptor(gyro_z_descriptor);
