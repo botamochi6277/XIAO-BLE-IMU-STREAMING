@@ -71,7 +71,9 @@ void loop() {
       float gz = my_imu.readFloatGyroZ();
       float temp = my_imu.readTempC();
 
-      imu_service.write_value(milli_sec, x, y, z, gx, gy, gz, temp);
+      imu_service.write_value(milli_sec, 9.81f * x, 9.81f * y, 9.81f * z,
+                              (3.141f / 180.0f) * gx, (3.141f / 180.0f) * gy,
+                              (3.141f / 180.0f) * gz, temp);
 
       digitalWrite(LEDB, !digitalRead(LEDB));  // ble heartbeat
       delay(100);

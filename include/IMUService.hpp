@@ -1,5 +1,6 @@
 #ifndef BLE_IMU_SRV_HPP
 #define BLE_IMU_SRV_HPP
+#include <Arduino.h>
 #include <ArduinoBLE.h>
 
 #include "BLEFormat.hpp"
@@ -21,6 +22,40 @@ class IMUService : public BLEService {
   BLEFloatCharacteristic gyro_z_char_;
 
   BLEFloatCharacteristic temp_char_;
+
+  const uint8_t msec_format_[7] = {
+      BLE_GATT_CPF_FORMAT_UINT64,
+      0b11111101,                              // exp, milli, -3
+      (u_int8_t)BLE_GATT_CPF_UNIT_SEC,         // 0x13
+      (u_int8_t)(BLE_GATT_CPF_UNIT_SEC >> 8),  // 0x27
+      0x01,
+      0x00,
+      0x00};
+
+  const uint8_t acc_format_[7] = {
+      BLE_GATT_CPF_FORMAT_FLOAT32,
+      0x00,
+      (u_int8_t)BLE_GATT_CPF_UNIT_METER_PER_SS,         // 0x13
+      (u_int8_t)(BLE_GATT_CPF_UNIT_METER_PER_SS >> 8),  // 0x27
+      0x01,
+      0x00,
+      0x00};
+
+  const uint8_t gyro_format_[7] = {BLE_GATT_CPF_FORMAT_FLOAT32,
+                                   0x00,
+                                   (uint8_t)BLE_GATT_CPF_UNIT_RAD_PER_S,
+                                   (uint8_t)(BLE_GATT_CPF_UNIT_RAD_PER_S >> 8),
+                                   0x01,
+                                   0x00,
+                                   0x00};  // byte array
+
+  const uint8_t temp_format_[7] = {BLE_GATT_CPF_FORMAT_FLOAT32,
+                                   0x00,
+                                   (uint8_t)BLE_GATT_CPF_UNIT_CELSIUS,
+                                   (uint8_t)(BLE_GATT_CPF_UNIT_CELSIUS >> 8),
+                                   0x01,
+                                   0x00,
+                                   0x00};  // byte array
 
  public:
   IMUService(/* args */);
@@ -74,20 +109,29 @@ IMUService::IMUService(/* args */)
   this->gyro_y_char_.addDescriptor(gyro_y_descriptor);
   this->gyro_z_char_.addDescriptor(gyro_z_descriptor);
 
-  BLEDescriptor temp_descriptor("2901", "Temperature");
+  BLEDescriptor temp_descriptor("2901", "temperature");
   this->temp_char_.addDescriptor(temp_descriptor);
 
   // Format Description
-  uint8_t acc_format_array[7] = {
-      BLE_GATT_CPF_FORMAT_FLOAT32,
-      0x00,
-      (uint8_t)BLE_GATT_CPF_UNIT_METER_PER_SS,       // 0x13
-      (uint8_t)BLE_GATT_CPF_UNIT_METER_PER_SS >> 8,  // 0x27
-      0x01,
-      0x00,
-      0x00};  // byte array
-  BLEDescriptor acc_format_descriptor("2904", acc_format_array, 7);
-  this->acc_x_char_.addDescriptor(acc_format_descriptor);
+  BLEDescriptor millisec_descriptor("2904", this->msec_format_, 7);
+  this->timer_char_.addDescriptor(millisec_descriptor);
+
+  BLEDescriptor acc_format_descriptor_x("2904", this->acc_format_, 7);
+  this->acc_x_char_.addDescriptor(acc_format_descriptor_x);
+  BLEDescriptor acc_format_descriptor_y("2904", this->acc_format_, 7);
+  this->acc_y_char_.addDescriptor(acc_format_descriptor_y);
+  BLEDescriptor acc_format_descriptor_z("2904", this->acc_format_, 7);
+  this->acc_z_char_.addDescriptor(acc_format_descriptor_z);
+
+  BLEDescriptor gyro_format_descriptor_x("2904", this->gyro_format_, 7);
+  this->gyro_x_char_.addDescriptor(gyro_format_descriptor_x);
+  BLEDescriptor gyro_format_descriptor_y("2904", this->gyro_format_, 7);
+  this->gyro_y_char_.addDescriptor(gyro_format_descriptor_y);
+  BLEDescriptor gyro_format_descriptor_z("2904", this->gyro_format_, 7);
+  this->gyro_z_char_.addDescriptor(gyro_format_descriptor_z);
+
+  BLEDescriptor temp_format_descriptor("2904", this->temp_format_, 7);
+  this->temp_char_.addDescriptor(temp_format_descriptor);
 }
 
 IMUService::~IMUService() {}
